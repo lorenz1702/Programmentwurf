@@ -1,0 +1,378 @@
+\chapter{Programming Principles}
+
+
+\section{SOLID}
+
+\subsection*{Single responsibility principle}
+
+Die Single Responsibility Principle (SRP) besagt, dass eine Klasse nur einen Grund zur Änderung haben sollte, was bedeutet, dass sie nur eine Verantwortlichkeit haben sollte. Lassen Sie uns die bereitgestellte Spy-Klasse analysieren:\\
+
+\begin{lstlisting}[language=Kotlin]
+    class Spy(
+        override val id: Int,
+        override var username: String
+    ) : User {
+        override fun displayRole() {
+            println("Ich bin ein Spion")
+        }
+    }
+\end{lstlisting}
+
+Diese Klasse scheint einen bestimmten Benutzertyp, einen "Spion", zu repräsentieren. Sie implementiert das \texttt{User}-Interface und bietet eine spezifische Implementierung für die Funktion \texttt{displayRole()} an, die "Ich bin ein Spion" ausgibt.
+
+Basierend auf dem SRP sind die Verantwortlichkeiten dieser Klasse:
+
+\begin{enumerate}
+    \item Repräsentation eines Benutzertyps (Spion).
+    \item Bereitstellung einer Implementierung für die Funktion \texttt{displayRole()} spezifisch für die Spion-Rolle.
+\end{enumerate}
+
+Da sich die Klasse auf das Verhalten eines Spion-Benutzers konzentriert, scheint sie dem Single Responsibility Principle zu entsprechen. Sie hat einen klaren Zweck und nur einen Grund zur Änderung: wenn das Verhalten oder die Attribute eines Spion-Benutzers geändert werden müssen. Wenn jedoch das Verhalten der \texttt{displayRole()}-Funktion aus verschiedenen Gründen, die nicht spezifisch für den Spion-Benutzer sind, häufig geändert werden könnte, wäre es möglicherweise besser, diese Verantwortung an eine separate Klasse zu delegieren. Insgesamt erfüllt die Klasse, solange die Verantwortlichkeiten der Klasse fokussiert und zusammenhängend bleiben, das SRP.
+
+
+
+
+\subsection*{Open/Closed Principle}
+
+\begin{lstlisting}[language=Kotlin, caption={Open/Closed Principle}, label={lst:10}]
+package domain
+
+interface User {
+    val id: Int
+    var username: String
+    fun displayRole()
+}
+
+
+class Spy(
+    override val id: Int,
+    override var username: String
+) : User {
+    override fun displayRole() {
+        println("I am a Spy")
+    }
+}
+
+
+// Player class
+class Player(
+    override val id: Int,
+    override var username: String
+) : User {
+    override fun displayRole() {
+        println("I am a Player")
+    }
+}
+
+\end{lstlisting}
+
+Es erfüllt das Open/Closed-Prinzip (OCP), da die Interfaces \texttt{User} und \texttt{DisplayRoleUseCase} offen für Erweiterungen sind, aber geschlossen für Modifikationen.
+
+- Interface \texttt{User}: Definiert die Eigenschaften und Methoden, die für alle Benutzer gelten sollen. Durch Implementierung können verschiedene Benutzertypen erstellt werden, die das \texttt{User}-Interface verwenden, ohne das Interface selbst zu ändern. Neue Benutzertypen können hinzugefügt werden, indem neue Klassen erstellt werden, die das \texttt{User}-Interface implementieren, ohne das Interface selbst zu ändern.
+
+- Klasse \texttt{Spy}: Stellt eine spezifische Implementierung eines Benutzers dar (einen Spion). Die Klasse erweitert das \texttt{User}-Interface und bietet eine spezifische Implementierung für die \texttt{displayRole()}-Methode an. Die Implementierung der \texttt{displayRole()}-Methode erweitert die Funktionalität des \texttt{User}-Interfaces, ohne es zu ändern.
+
+\subsection*{Liskov substitution principle}
+\label{LSP}
+Das Liskov Substitutionsprinzip (LSP) ist ein Grundsatz der objektorientierten Programmierung, der besagt, dass Subtypen sich genauso verhalten müssen wie ihre Basistypen. Hier sind einige wichtige Aspekte des LSP:
+\begin{itemize}
+    \item Subtypen müssen sich wie ihre Basistypen verhalten: Das bedeutet, dass ein Objekt eines Subtyps anstelle seines Basistyps verwendet werden kann, ohne dass sich das erwartete Verhalten ändert.
+    \item Erweiterung, keine Einschränkung: Ein Subtyp sollte die Funktionalität des Basistyps erweitern können, aber niemals einschränken. Das heißt, die Methoden des Basistyps sollten von Subtypen entweder überschrieben oder erweitert werden, aber nicht entfernt oder in ihrer Funktionalität beschränkt werden.
+    \item Vererbung als "behaves-like"-Relation: Statt die Beziehung zwischen Basistyp und Subtyp als rein "is-a"-Beziehung zu betrachten, sollten wir sie eher als "behaves-like"-Relation verstehen. Das bedeutet, dass ein Subtyp das Verhalten des Basistyps nachahmen sollte.
+    \item Vererbung ist nicht immer die beste Lösung: Obwohl Vererbung ein leistungsfähiges Werkzeug ist, um Code zu organisieren und Funktionalität wiederzuverwenden, ist es nicht immer die beste Wahl. In einigen Fällen kann die Komposition von Objekten über Vererbung bevorzugt werden, insbesondere wenn es um die Zusammenstellung verschiedener Verhaltensweisen geht.
+\end{itemize}
+        
+Das LSP ist ein wichtiges Prinzip, das sicherstellt, dass die Vererbungshierarchie eines Systems konsistent und leicht zu verwenden ist. Es fördert eine klare Strukturierung des Codes und trägt zur Wartbarkeit und Erweiterbarkeit von Software bei.
+
+Überall wo man die Elternklasse verwendet soll man auch die Unterklassen verwenden können. Ohne das es zu Problemen kommt. Wenn ich gerade Tier Klasse verwende soll ich an der Stelle auch Hunde verwenden können.
+
+\begin{lstlisting}[language=Kotlin, caption={Liskov Substitution Principle}, label={lst:15}]
+
+abstract class AbstractWordRepository : WordRepository {
+
+    abstract fun getWords(): Array<String>
+
+    override fun loadWords(): List<Word> {
+        val wordsArray = getWords()
+        val words = mutableListOf<Word>()
+        for ((index, word) in wordsArray.withIndex()) {
+            words.add(createWord(index + 1, word))
+        }
+        return words
+    }
+
+    override fun createWord(wordId: Int, word: String): Word {
+        return Word(wordId, word)
+    }
+
+    override fun getRandomWord(words: List<Word>): Word {
+        if (words.isEmpty()) {
+            throw IllegalStateException("No words available")
+        }
+        return words.random()
+    }
+}
+
+class KlimacticWordRepository : AbstractWordRepository() {
+    override fun getWords(): Array<String> {
+        return arrayOf(
+            "Arctic",
+            "Antarctic",
+            "Tundra",
+            "Taiga",
+            "Temperate Forest",
+            "Tropical Rainforest",
+            "Grassland",
+            "Desert",
+            "Savanna",
+            "Mediterranean"
+        )
+    }
+}
+
+class SportWordRepository : AbstractWordRepository() {
+    override fun getWords(): Array<String> {
+        return arrayOf(
+            "Fussball",
+            "Basketball",
+            "Tennis",
+            "Volleyball",
+            "Schwimmen",
+            "Laufen",
+            "Leichtathletik",
+            "Boxen",
+            "Handball",
+            "Rugby",
+            "Golf",
+            "Hockey",
+            "Tischtennis",
+            "Badminton",
+            "Radfahren",
+            "Skifahren",
+            "Snowboarden",
+            "Klettern",
+            "Tauchen",
+            "Yoga"
+        )
+    }
+}
+\end{lstlisting}
+
+Der vorliegende Code erfüllt das Liskov-Substitutionsprinzip, da die Unterklassen KlimacticWordRepository und SportWordRepository die Verträge der Superklasse AbstractWordRepository einhalten und diese nicht verletzen.
+
+Das Liskov-Substitutionsprinzip besagt, dass Objekte einer abgeleiteten Klasse (Unterklasse) als Ersatz für Objekte ihrer Basisklasse (Superklasse) verwendet werden können, ohne dass sich das erwartete Verhalten des Programms ändert.
+
+Im vorliegenden Code:
+\begin{enumerate}
+    \item Die Unterklassen KlimacticWordRepository und SportWordRepository erweitern die abstrakte Klasse AbstractWordRepository.
+    \item Sie implementieren die abstrakte Methode getWords(), die in der Superklasse definiert ist. Dadurch wird sichergestellt, dass beide Unterklassen das erwartete Verhalten der Superklasse bereitstellen.
+    \item Die abstrakte Klasse AbstractWordRepository definiert eine Template-Methode loadWords(), die von den Unterklassen verwendet wird, um Wörter zu laden. Die Unterklassen können die Methode getWords() implementieren, um ihre eigenen spezifischen Wörter zurückzugeben, während der Algorithmus zum Laden der Wörter in der Superklasse definiert ist.
+    \item Da die Unterklassen die Verträge der Superklasse einhalten und das erwartete Verhalten bereitstellen, können sie problemlos anstelle der Superklasse verwendet werden, ohne das Verhalten des Programms zu ändern.
+\end{enumerate}
+    
+Somit erfüllt der vorliegende Code das Liskov-Substitutionsprinzip.
+\subsection*{Interface Segregation Principle}
+Das Interface Segregation Principle wurde hier schon angewendet \ref{ISP}.
+
+\subsection*{Dependency Inversion principle}
+Das Dependency Inversion Principle wurde hier schon angewendet \ref{sec:DI}.
+
+
+\section{GRASP}
+
+\subsection{Low Coupling}
+\textbf{Low Coupling} bedeutet, dass Klassen oder Module in einem System so wenig wie möglich voneinander abhängig sind. Hier sind einige wichtige Punkte, die dies verdeutlichen:
+
+\begin{itemize}
+    \item \textbf{Geringe bzw. lose Kopplung}: Dies bedeutet, dass eine Klasse wenig über die Implementierung anderer Klassen oder Module wissen muss, um ihre Aufgaben zu erfüllen.
+    \item \textbf{Kopplung}: Es ist ein Maß für die Abhängigkeit einer Klasse von anderen Klassen oder Modulen. Je höher die Kopplung, desto stärker sind die Verbindungen zwischen den verschiedenen Teilen des Systems.
+    \item \textbf{Geringe Kopplung unterstützt:}
+    \begin{itemize}
+        \item \textbf{Leichte Anpassbarkeit}: Da Änderungen in einer Klasse oder einem Modul weniger wahrscheinlich Auswirkungen auf andere Teile des Systems haben.
+        \item \textbf{Gute Testbarkeit}: Tests können isoliert durchgeführt werden, da weniger Abhängigkeiten zwischen den Komponenten bestehen.
+        \item \textbf{Verständlichkeit}: Durch weniger Kontext oder Abhängigkeiten ist der Code einfacher zu verstehen und zu warten.
+        \item \textbf{Erhöhte Wiederverwendbarkeit}: Lose gekoppelte Komponenten können einfacher in anderen Systemen wiederverwendet werden, da sie weniger Abhängigkeiten haben.
+    \end{itemize}
+\end{itemize}
+
+Ein niedriger Kopplungsgrad ist daher ein Ziel in der Softwareentwicklung, da er zu einem flexibleren, besser wartbaren und erweiterbaren System führt. Das Erreichen einer geringen Kopplung erfordert oft die Anwendung verschiedener Designprinzipien und -muster wie Dependency Injection, Interfaces und Abstraktion.
+
+\subsection*{Positive Beispiel}
+Ein polymorher Aufruf über ein Interface ermöglicht eine geringe Kopplung zwischen verschiedenen Klassen oder Modulen.
+
+\begin{lstlisting}[language=Kotlin, caption={Polymorher Aufruf über ein Interface}, label={lst:9}]
+var users = mutableListOf<User>()
+...
+users.remove(randomUser)
+randomUser.displayRole()
+...
+\end{lstlisting}
+In diesem Code \ref{lst:9} wird die Methode displayRole() aufgerufen, die Teil des User-Interfaces ist. Je nachdem, ob randomUser ein Spy oder ein Player ist, wird eine unterschiedliche Implementierung dieser Methode ausgeführt. Dies ermöglicht eine lose Kopplung, da die aufrufende Klasse (GameLogic in diesem Fall) nicht wissen muss, welche spezifische Implementierung von User verwendet wird.
+
+Die Implementierungen des User-Interfaces sind wie folgt definiert\ref{lst:10}.
+
+Durch den Einsatz von Polymorphismus über Interfaces wird eine geringe Kopplung erreicht, da die Implementierungsdetails der User-Klassen von der aufrufenden Klasse entkoppelt sind. Dies erleichtert die Wartbarkeit und Erweiterbarkeit des Codes, da Änderungen an den Implementierungen von User keinen direkten Einfluss auf die aufrufende Klasse haben.
+
+\subsection*{Negativ Beispiel}
+\begin{lstlisting}[language=Kotlin, caption={Abhängigkeit von direkter Implementierung}, label={lst:9}]
+    
+class GameLogic(private val wordRepository: WordRepository, private val dataRepository: DataRepository, private val userRepository: UserRepository) {
+    var users = mutableListOf<User>()
+
+
+    fun choseCategories(chosenCategories:Boolean){
+        if (chosenCategories){
+            dataRepository.setWords(SportWordRepository().loadWords())
+            return
+        }
+
+        dataRepository.setWords(KlimacticWordRepository().loadWords())
+    }
+\end{lstlisting}
+
+n der Klasse GameLogic gibt es eine hohe Kopplung zwischen der Implementierung und den konkreten Implementierungen der Repositories (WordRepository, DataRepository und UserRepository). Dies liegt daran, dass die Klasse direkt auf die konkreten Implementierungen von SportWordRepository und KlimacticWordRepository zugreift, um die Wörter zu laden.
+
+Das direkte Erstellen von Instanzen von SportWordRepository und KlimacticWordRepository innerhalb der Methode choseCategories erhöht die Kopplung, da die Klasse stark von den konkreten Implementierungen abhängig ist. Dadurch wird die Flexibilität der Klasse beeinträchtigt, da Änderungen an diesen Implementierungen Auswirkungen auf die GameLogic-Klasse haben könnten.
+
+\subsection{High Cohesion}
+
+
+
+
+High Cohesion ist ein Prinzip des Software-Designs, das sich darauf konzentriert, dass Klassen oder Module eng zusammenarbeiten und sich auf eine klare und spezifische Aufgabe konzentrieren. Dabei geht es darum, dass die Elemente einer Klasse oder eines Moduls stark miteinander verbunden sind und zusammenarbeiten, um eine gemeinsame Verantwortung zu erfüllen.
+
+Einige wichtige Punkte, die High Cohesion charakterisieren, sind:
+
+\begin{enumerate}
+    \item Aufgabenorientierung: Jede Klasse oder jedes Modul sollte eine klare Aufgabe oder Verantwortung haben und sich darauf konzentrieren, diese effizient zu erfüllen.
+    \item Zusammengehörigkeit: Die Elemente innerhalb einer Klasse oder eines Moduls sollten eng miteinander verbunden sein und zusammenarbeiten, um das übergeordnete Ziel zu erreichen.
+    \item Wenige externe Abhängigkeiten: Klassen oder Module mit hoher Kohäsion sollten nur wenige oder keine externen Abhängigkeiten haben. Sie sollten weitgehend unabhängig von anderen Teilen des Systems sein, um ihre Aufgabe effektiv erfüllen zu können.
+    \item Klar abgegrenzte Funktionalität: Jede Klasse oder jedes Modul sollte eine klar definierte Funktionalität haben, ohne sich in verschiedene Richtungen zu verzweigen oder mehrere Aufgaben gleichzeitig zu erfüllen.
+    \item Einfache Wartbarkeit und Erweiterbarkeit: Durch die klare Abgrenzung der Verantwortlichkeiten und die engen Verbindungen zwischen den Elementen ist der Code leichter wartbar und erweiterbar. Änderungen in einem Teil des Systems haben weniger Auswirkungen auf andere Teile.
+\end{enumerate}
+
+Insgesamt führt High Cohesion zu einem klar strukturierten und gut organisierten Code, der einfacher zu verstehen, zu warten und zu erweitern ist. Es trägt dazu bei, die Komplexität des Systems zu reduzieren und die Qualität der Software zu verbessern.
+
+
+\subsection*{Beispiel}
+\begin{lstlisting}[language=Kotlin, caption={High Cohesion}, label={lst:11}]
+    
+class ImpUserRepository : UserRepository{
+    override fun createSpy(spyId: Int): Spy {
+        return Spy(spyId,"Spy $spyId")
+    }
+
+    override fun createPlayer(playerId: Int): Player {
+        return Player(playerId, "Player $playerId")
+    }
+
+    override fun createUsers(numberOfSpies: Int, numberOfPlayers: Int): List<User> {
+        val users = mutableListOf<User>()
+        for (i in 1..numberOfSpies) {
+            users.add(createSpy(i))
+
+        }
+        for (i in 1..numberOfPlayers) {
+            users.add(createPlayer(i))
+        }
+        return users
+    }
+
+
+
+    override fun displayAllUserRoles(userList: List<User>) {
+        userList.forEach { user ->
+            println("${user.username}: ")
+            user.displayRole()
+        }
+    }
+
+    override fun selctRandomUser(userList: MutableList<User>): User {
+        val randomIndex = (0..<userList.size).random()
+        return userList.removeAt(randomIndex)
+    }
+}
+\end{lstlisting}
+Der vorliegende Code\ref{lst:11} erfüllt das High Cohesion-Prinzip. Hier sind die Gründe:
+
+\begin{enumerate}
+    \item \textbf{Single Responsibility Principle (SRP)}: Die \texttt{ImpUserRepository}-Klasse hat eine klare Verantwortung, nämlich die Erstellung von Benutzern und die Anzeige ihrer Rollen. Dies entspricht dem SRP, da sie nur eine Aufgabe hat.
+    
+    \item \textbf{Fokus auf Benutzeroperationen}: Die Klasse konzentriert sich auf Operationen im Zusammenhang mit Benutzern, einschließlich der Erstellung von Spielern und Spionen, der Anzeige ihrer Rollen und der Auswahl eines zufälligen Benutzers. Dadurch bleibt der Fokus der Klasse auf einer bestimmten Domäne, was die Kohäsion erhöht.
+    
+    \item \textbf{Kohäsive Methoden}: Alle Methoden in der Klasse haben einen klaren Zusammenhang zu Benutzeroperationen. Die Methoden sind eng miteinander verbunden und dienen einem gemeinsamen Zweck, was die Kohäsion erhöht.
+    
+    \item \textbf{Wiederverwendbarkeit}: Die Klasse ist darauf ausgelegt, wieder verwendbar zu sein, da sie unabhängig von anderen Teilen des Systems ist und ihre Funktionen isoliert sind.
+\end{enumerate}
+
+Insgesamt erfüllt der Code das High Cohesion-Prinzip, da er eine klare Verantwortung hat, sich auf spezifische Benutzeroperationen konzentriert und kohäsive Methoden aufweist.
+
+
+\subsection*{Negativ Beispiel}
+\begin{lstlisting}[language=Kotlin, caption={High Cohesion}, label={lst:17}]
+class GameLogic(private val wordRepository: WordRepository, private val dataRepository: DataRepository, private val userRepository: UserRepository) {
+        var users = mutableListOf<User>()
+
+
+        fun choseCategories(chosenCategories:Boolean){
+            if (chosenCategories){
+                dataRepository.setWords(SportWordRepository().loadWords())
+                return
+            }
+
+            dataRepository.setWords(KlimacticWordRepository().loadWords())
+        }
+
+    fun initializeGame(numberofSpies:Int, numberofUsers:Int){
+        val numberofPlayers = numberofUsers-numberofSpies
+        dataRepository.setUser(userRepository.createUsers(numberofSpies, numberofPlayers))
+        dataRepository.setWord(wordRepository.getRandomWord(dataRepository.getAllWords()))
+        this.users = dataRepository.getAllUsers().toMutableList()
+    }
+
+    fun displayOneRole() {
+        if (users.isEmpty()) { return }
+
+        val randomUser = userRepository.selctRandomUser(users)
+        users.remove(randomUser)
+        randomUser.displayRole()
+        if (randomUser is Player) {
+            printPlayerWord(randomUser)
+        }
+    }
+
+    private fun printPlayerWord(player: Player) {
+        println("Word: ${dataRepository.getWord()?.name}")
+    }
+}
+\end{lstlisting}
+
+In diesem Code \ref{lst:17} zeigt sich eine geringe Kohäsion, da verschiedene Aufgaben in einer Klasse zusammengefasst sind, die möglicherweise nicht eng miteinander verbunden sind. Hier sind einige Beispiele:
+
+\begin{itemize}
+    \item choseCategories-Methode: Diese Methode ist für die Auswahl von Kategorien zuständig, was sich auf die Spielkonfiguration bezieht. Sie greift jedoch auf externe Repositories wie SportWordRepository und KlimacticWordRepository zu, um Wortlisten zu laden. Dies führt zu einer geringen Kohäsion, da die Auswahl von Kategorien und das Laden von Wortlisten zwei unterschiedliche Aufgaben sind und nicht eng miteinander verbunden sind.
+    \item initializeGame-Methode: Diese Methode ist für die Initialisierung des Spiels zuständig, was eine andere Aufgabe ist als die Auswahl von Kategorien oder das Laden von Wortlisten. Auch hier gibt es eine geringe Kohäsion, da verschiedene Aspekte des Spiels in derselben Klasse zusammengefasst sind.
+    \item displayOneRole-Methode: Diese Methode ist für das Anzeigen der Rolle eines Spielers während des Spiels verantwortlich. Obwohl dies eine Aufgabe im Kontext des Spiels ist, gibt es eine Trennung zwischen dem Anzeigen der Rolle und der Auswahl von Kategorien oder der Initialisierung des Spiels.
+\end{itemize}
+    
+Um die Kohäsion zu verbessern, könnten diese verschiedenen Aufgaben in separaten Klassen oder Modulen organisiert werden, die jeweils eine klar definierte Verantwortlichkeit haben. Dadurch würde der Code klarer strukturiert und besser wartbar sein.
+
+
+
+\section{DRY}
+DRY (Don't Repeat Yourself) ist ein Prinzip der Softwareentwicklung, das darauf abzielt, Redundanz im Code zu vermeiden und eine klare, unzweideutige Darstellung von Wissen im System sicherzustellen. Hier sind einige wichtige Punkte, die DRY verdeutlichen:
+\begin{itemize}
+    \item Das Prinzip lautet "Mache alles einmal und nur einmal", was bedeutet, dass jede Information oder Funktionalität im System nur an einem einzigen Ort vorhanden sein sollte.
+    \item Änderungen sollten an einer einzigen Stelle vorgenommen werden können, und diese Änderungen sollten sich auf alle relevanten Teile des Systems auswirken.
+    \item DRY betrifft nicht nur den Code selbst, sondern auch andere Artefakte wie Skripte, Testpläne und Dokumentationen.
+    \item DRY ist nicht dasselbe wie das Singleton-Muster. Es interessiert sich nicht für die Anzahl von Objekten zur Laufzeit, sondern darauf, dass jedes Stück Wissen eine einzige, unzweideutige Repräsentation im System hat.
+\end{itemize}
+Das Motto für DRY besagt, dass jedes Wissensaspekt eine einzige, unzweideutige, autoritative Repräsentation innerhalb eines Systems haben sollte. Dabei ist mechanische Duplikation erlaubt, solange die Originalquelle klar definiert ist.
+
+Hier findet sich Code \ref{lst:13} der gegen DRY verstößt.
+
+Dieser Code verstößt gegen das Prinzip "Don't Repeat Yourself" (DRY), weil es zwei separate Funktionen gibt (loadKlimacticWords und loadSportWords), die im Wesentlichen denselben Code enthalten, um eine Liste von Wörtern zu erstellen. Der einzige Unterschied zwischen den beiden Funktionen besteht in den Arrays von Wörtern, die sie verwenden. Durch die Wiederholung des Codes entsteht Redundanz und erhöhter Wartungsaufwand. Wenn sich die Art und Weise ändert, wie die Wörter geladen werden sollen, müssten beide Funktionen geändert werden, was das Risiko von Fehlern erhöht.
+
+Um das DRY-Prinzip anzuwenden, könnten Sie eine einzige Funktion erstellen, die eine Liste von Wörtern basierend auf einem übergebenen Array von Wörtern erstellt. Auf diese Weise würde der Code an einer einzigen Stelle definiert und gewartet werden, was die Wartbarkeit und Lesbarkeit des Codes verbessert und das Risiko von Inkonsistenzen reduziert.
+
+Es wird dann mit dem Liskov Substitutionsprinzip behoben \ref{LSP}.

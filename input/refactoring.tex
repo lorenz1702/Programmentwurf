@@ -1,0 +1,321 @@
+\chapter{Refactoring}
+
+\section{Code smells identifizieren}
+
+
+\subsection*{Lage Class and Long Method}
+
+\begin{lstlisting}[language=Kotlin, caption={Code Smell: Large Class and Long Method}, label={lst:5}]
+
+class InMemoryGameRepository : GameRepository {
+    
+    private val users = mutableListOf<User>()
+    private val players = mutableListOf<Player>()
+    private val spies = mutableListOf<Spy>()
+    private var words = mutableListOf<Word>()
+    private var word: Word? = null
+
+    // Add players to the repository
+
+
+    fun addPlayer(player: Player) {
+        players.add(player)
+        users.add(player)
+    }
+
+    // Add spies to the repository
+    fun addSpy(spy: Spy) {
+        spies.add(spy)
+        users.add(spy)
+    }
+
+    // Set the secret word
+    override fun setWord(theword: Word) {
+        this.word = theword
+    }
+
+    override fun getWord(): Word? {
+        return this.word
+    }
+
+
+    // Implement methods from the GameRepository interface
+
+    override fun createPlayer(PlayerId: Int): Player {
+        return Player(
+            PlayerId,
+            "Player $PlayerId"
+        )
+    }
+
+    override fun createSpy(SpyId: Int): Spy {
+        return Spy(SpyId,"Spy $SpyId")
+    }
+
+    fun getAllWords(): MutableList<Word> {
+        return this.words
+    }
+    override fun LoadWords() {
+        val geographicZones = arrayOf(
+            "Arctic",
+            "Antarctic",
+            "Tundra",
+            "Taiga",
+            "Temperate Forest",
+            "Tropical Rainforest",
+            "Grassland",
+            "Desert",
+            "Savanna",
+            "Mediterranean"
+        )
+
+        words.clear() // Clear existing words
+        for ((index, zone) in geographicZones.withIndex()) {
+            words.add(createWord(index + 1, zone))
+        }
+    }
+
+    override fun createWord(WordId: Int, Word: String): Word {
+
+        return Word(WordId, Word)
+    }
+
+    override fun getAllUser(): List<User> {
+        return users.toList()
+    }
+
+
+
+    override fun getRandomWord(): Word {
+        if (words.isEmpty()) {
+            throw IllegalStateException("No words available")
+        }
+        return words.random()
+    }
+
+    override fun createUsers(numberOfSpies: Int, numberOfPlayers: Int) {
+        for (i in 1..numberOfSpies) {
+            this.addSpy(createSpy(i))
+
+        }
+        for (i in 1..numberOfPlayers) {
+            this.addPlayer(createPlayer(i))
+        }
+    }
+
+    override fun userdisplaythereRole() {
+        users.forEach { user ->
+            println("${user.username}: ")
+            user.displayRole()
+        }
+    }
+}
+\end{lstlisting}
+
+Die Klasse InMemoryGameRepository zeigt mehrere Code Smells auf, die auf potenzielle Probleme im Code hinweisen. Einer dieser Code Smells ist die Größe der Klasse, die zu groß erscheint und möglicherweise mehrere Verantwortlichkeiten beinhaltet. Dies verstößt gegen das Single Responsibility Principle (SRP), das besagt, dass eine Klasse nur für eine Aufgabe verantwortlich sein sollte.
+
+Ein weiterer Code Smell ist die Kombination von Datenverwaltung und Geschäftslogik innerhalb derselben Klasse. Die InMemoryGameRepository Klasse ist nicht nur für die Verwaltung von Daten zuständig, sondern enthält auch Logik, die sich auf das Spiel bezieht. Dies führt zu einer unklaren Trennung der Verantwortlichkeiten und kann die Wartbarkeit und Testbarkeit des Codes beeinträchtigen.
+
+Darüber hinaus verstößt das GameRepository Interface gegen das Interface Segregation Principle (ISP). Das ISP besagt, dass Clients nicht von Methoden abhängig sein sollten, die sie nicht verwenden. Da das GameRepository Interface von der InMemoryGameRepository Klasse implementiert wird, die sowohl Datenverwaltung als auch Spiellogik enthält, kann es sein, dass Clients gezwungen sind, Methoden zu implementieren oder zu verwenden, die für sie nicht relevant sind. Dies führt zu einer Interface-Bloat und Verletzung des ISP.
+
+
+\subsection*{Duplicated Code}
+\begin{lstlisting}[language=Kotlin, caption={Code Smell: Duplicated Code}, label={lst:13}]
+override fun loadKlimacticWords(): List<Word> {
+    val words = mutableListOf<Word>()
+    val geographicZones = arrayOf(
+        "Arctic",
+        "Antarctic",
+        "Tundra",
+        "Taiga",
+        "Temperate Forest",
+        "Tropical Rainforest",
+        "Grassland",
+        "Desert",
+        "Savanna",
+        "Mediterranean"
+    )
+
+    words.clear() // Clear existing words
+    for ((index, zone) in geographicZones.withIndex()) {
+        words.add(createWord(index + 1, zone))
+    }
+    return words
+}
+
+override fun loadSportWords(): List<Word> {
+    val words = mutableListOf<Word>()
+    val sportWords = arrayOf(
+        "Fussball",
+        "Basketball",
+        "Tennis",
+        "Volleyball",
+        "Schwimmen",
+        "Laufen",
+        "Leichtathletik",
+        "Boxen",
+        "Handball",
+        "Rugby",
+        "Golf",
+        "Hockey",
+        "Tischtennis",
+        "Badminton",
+        "Radfahren",
+        "Skifahren",
+        "Snowboarden",
+        "Klettern",
+        "Tauchen",
+        "Yoga"
+    )
+    words.clear() // Clear existing words
+    for ((index, zone) in sportWords.withIndex()) {
+        words.add(createWord(index + 1, zone))
+    }
+    return words
+}
+\end{lstlisting}
+In diesem Code gibt es zwei ähnliche Methoden, \texttt{loadKlimacticWords} und \texttt{loadSportWords}, die beide eine Liste von Wörtern laden und zurückgeben. Beide Methoden haben folgende Gemeinsamkeiten:
+
+\begin{enumerate}
+  \item Sie erstellen eine leere Liste von Wörtern (\texttt{words.clear()}), bevor sie neue Wörter hinzufügen.
+  \item Sie verwenden eine Schleife, um Wörter aus einem Array von Strings hinzuzufügen.
+  \item Sie verwenden die \texttt{createWord}-Methode, um ein Word-Objekt zu erstellen und es der Liste hinzuzufügen.
+\end{enumerate}
+
+Obwohl die spezifischen Wortlisten unterschiedlich sind, ist die grundlegende Logik zum Laden der Wörter in beiden Methoden sehr ähnlich. Dies führt zu redundantem Code, da die gleichen oder ähnliche Codefragmente an mehreren Stellen im Code vorhanden sind.
+
+Die Präsenz dieses duplizierten Codes führt zu mehreren Problemen:
+
+\begin{itemize}
+  \item Erhöhter Wartungsaufwand: Änderungen müssen an mehreren Stellen im Code vorgenommen werden, was die Wartung erschwert und die Fehleranfälligkeit erhöht.
+  \item Niedrige Kohäsion: Der Code könnte kohäsiver sein, indem er die gemeinsame Logik an einem Ort konsolidiert.
+  \item Wiederverwendbarkeit: Durch die Konsolidierung des Codes an einer Stelle könnte die Wiederverwendbarkeit verbessert werden, da der Code leichter in anderen Teilen des Systems verwendet werden könnte.
+\end{itemize}
+
+Daher handelt es sich hier um einen Fall von duplicated Code, der vermieden werden sollte, indem die gemeinsame Logik in eine separate Methode oder Funktion extrahiert wird, um die Wiederholung zu vermeiden.
+
+\section{Refactoring the Code Smell}
+
+\subsection*{Interface Segregation Principle}
+\label{ISP}
+Um den Code Smell Large Class zu beheben wird das Interface Segregation Principle angewendet. In dem die Datenverwaltung auszulagern und in separate Interfaces aufzuteilen: UserRepository, WordRepository und DataRepository. Jedes Interface sollte nur die Methoden enthalten, die für die Verwaltung des entsprechenden Datentyps erforderlich sind\ref{lst:6}.\\
+\begin{lstlisting}[language=Kotlin, caption={Interface Segragation Principle}, label={lst:6}]
+interface DataRepository {
+    fun getAllUsers(): List<User>
+    fun getAllWords(): List<Word>
+    fun getWord(): Word?
+    fun setWord(word: Word)
+    fun setUser(createUsers: List<User>)
+}
+
+
+interface UserRepository {
+    fun createSpy(spyId: Int): Spy
+    fun createPlayer(playerId: Int): Player
+    fun createUsers(numberOfSpies: Int, numberOfPlayers: Int): List<User>
+    fun displayAllUserRoles(userList:List<User>)
+}
+
+
+interface WordRepository {
+    fun loadWords():List<Word>
+    fun createWord(wordId: Int, word: String): Word
+    fun getRandomWord(words: List<Word>): Word
+}
+\end{lstlisting}
+
+Zusätzlich kann die Game-Logik mit Dependency Inversion ausgelagert werden in den Domain Code. Die GameLogic-Klasse kann dann diese abstrakten Repositories verwenden, um die Daten zu verwalten und die Game-Funktionen auszuführen. Dies verbessert die Flexibilität und Testbarkeit des Codes diese wird genauer hier beschrieben \ref{sec:DI}.
+
+Auch wurden Funktion und Code entfernt der nicht genutzt wurde\href{https://github.com/lorenz1702/Spy-Game/commit/b6fee0f44df3278afe4a151fb1b4239a373f95bf}{Commit-Hash}.
+
+
+\subsection{Extract Method}
+
+\begin{lstlisting}[language=Kotlin, caption={Extract Method}, label={lst:7}]
+fun displayOneRole(){
+    if (users.isEmpty()) { return }
+    val randomIndex = (0..<users.size).random()
+    val randomUser = users.removeAt(randomIndex)
+
+    println("${randomUser.username}:")
+    randomUser.displayRole()
+    if (randomUser is Player) {
+        println("Word: ${dataRepository.getWord()?.name}")  // Print the word if the user is a player and not a spy
+    }
+}
+\end{lstlisting}
+
+Die Methode displayOneRole \ref{lst:7} in ihrer aktuellen Form hat eine längere und komplexere Struktur, die sie schwerer zu verstehen und zu warten macht. Hier sind die Gründe, warum dies als Code Smell "Longe Method" betrachtet werden kann:
+
+    Umfangreiche Funktionalität: Die Methode führt mehrere Aufgaben aus, darunter die Auswahl eines zufälligen Benutzers aus einer Liste, die Anzeige des Benutzernamens und seiner Rolle sowie die Anzeige des Wortes (falls der Benutzer ein Spieler ist). Diese Vielzahl von Aufgaben erhöht die Länge und Komplexität der Methode.
+
+    Hohe Zeilenanzahl: Die Methode umfasst mehrere Zeilen Code, die verschiedene Aspekte der Logik behandeln. Dies kann dazu führen, dass Entwickler mehr Zeit benötigen, um den gesamten Code zu verstehen und potenzielle Fehler zu identifizieren.
+
+    Schlechte Lesbarkeit: Eine lange Methode kann schwer zu lesen sein, insbesondere wenn sie viele Schritte oder bedingte Anweisungen enthält. Dies kann die Wartbarkeit des Codes beeinträchtigen und die Fehlerbehebung erschweren.
+
+Um den Code Smell "Longe Method" zu adressieren, könnte die Methode in kleinere, spezifischere Methoden aufgeteilt werden, die jeweils eine einzelne Aufgabe ausführen. Dadurch wird der Code modularer, besser lesbar und einfacher zu warten.
+
+
+Um den Code der Methode displayOneRole zu verbessern und den Code Smell "Longe Method" zu adressieren, können wir die Methode in kleinere, spezifischere Methoden aufteilen, die jeweils eine einzelne Aufgabe ausführen. Hier ist eine refrakturierte Version unter Verwendung der Methode "Extract Method":
+
+\begin{lstlisting}[language=Kotlin, caption={Extract Method}, label={lst:7}]
+fun displayOneRole() {
+    if (users.isEmpty()) { return }
+
+    val randomUser = userRepository.selctRandomUser(users)
+    users.remove(randomUser)
+    randomUser.displayRole()
+    if (randomUser is Player) {
+        printPlayerWord(randomUser)
+    }
+}
+
+private fun printPlayerWord(player: Player) {
+    println("Word: ${dataRepository.getWord()?.name}")
+}
+
+class ImpUserRepository : UserRepository{
+
+override fun selctRandomUser(userList: MutableList<User>): User {
+    val randomIndex = (0..<userList.size).random()
+    return userList.removeAt(randomIndex)
+}
+}
+
+\end{lstlisting}
+In dieser refaktorierten Version wurde die ursprüngliche Methode displayOneRole in zwei kleinere Methoden aufgeteilt:
+
+    selectRandomUser(): Diese Methode wählt einen zufälligen Benutzer aus der Liste aus und entfernt ihn dann aus der Liste.
+    
+    printPlayerWord(player: Player): Diese Methode druckt das Wort des übergebenen Spielers, falls vorhanden.
+
+Durch diese Aufteilung wird der Code modularer, besser lesbar und einfacher zu warten, wodurch der Code Smell "Longe Method" behoben wird\href{https://github.com/lorenz1702/Spy-Game/commit/ef557ef3a24fecf2d3747dbc6dbf457b8c440d5c}{Commit-Hash}.
+
+\subsection{Template Method}
+In diesem Commit wird die Code duplication \ref{lst:13} mit einer Template Method und mit dem Liskov Substitutionsprinzip gelöst \ref{LSP}.
+
+In dem refrakturierten Code ist die Verwendung des Template Method-Musters in der Klasse AbstractWordRepository deutlich erkennbar.
+
+Das Template Method-Method definiert das Grundgerüst eines Algorithmus in einer Superklasse, ermöglicht es jedoch den Unterklassen, bestimmte Schritte des Algorithmus zu überschreiben, ohne dessen Struktur zu ändern.
+
+In diesem Fall:
+\begin{itemize}
+    \item Die Klasse AbstractWordRepository definiert eine Template-Methode loadWords(), die den Algorithmus zum Laden von Wörtern repräsentiert.
+    \item Die Methode loadWords() enthält gemeinsames Verhalten, das von allen Unterklassen gemeinsam genutzt wird, wie z. B. das Löschen vorhandener Wörter, das Iterieren über ein Array von Wörtern, das Erstellen von Word-Objekten und das Hinzufügen zu einer Liste.
+    \item Die Methode createWord() wird innerhalb der Template-Methode verwendet, um Word-Objekte zu erstellen und bietet eine Möglichkeit für Unterklassen, den Erstellungsprozess bei Bedarf anzupassen.
+    \item Unterklassen (KlimacticWordRepository und SportWordRepository) erweitern die Klasse AbstractWordRepository und überschreiben die Methode loadWords(), um spezifische Implementierungen zum Laden von klimabezogenen und sportbezogenen Wörtern bereitzustellen.
+    \item Durch die Verwendung des Template Method-Musters wird der Gesamtalgorithmus zum Laden von Wörtern in der Superklasse (AbstractWordRepository) definiert, während Unterklassen bestimmte Schritte anpassen können, ohne die Gesamtstruktur des Algorithmus zu ändern.
+\end{itemize}
+    
+Daher macht die Anwesenheit einer Methode (loadWords()) in der Superklasse, die die allgemeine Struktur des Algorithmus definiert und Haken für die Anpassung in den Unterklassen bereitstellt, das Template Method-Method deutlich erkennbar.
+
+Den Code findet man hier unter Liskov Substitutionsprinzip\ref{LSP} oder im \href{https://github.com/lorenz1702/Spy-Game/commit/e3fef4ffb48a3b35e6825ff9a1084a08438eeed2}{Commit-Hash}.
+%Zunächst muss die Klasse InMemoryGameRepository aufgeteilt werden sie hat zu viele Aufgaben sie verwaltet um einen die GameLogic, zum anderen verwaltet sie zuviele dataten die teilweise nicht verwendet werden müssen. Im Bezug auf die User, Words and the GameData das verstößt gegen das ISP.\\
+
+%Zu nächst werden die Dataen verwaltung ausgelagert in drei interfaces UserRepository, Wordrepository and Datarepository jedes interface hat nur die Aufgabe eine Datentyp zu verwalten. Dannach habe ich die Game logik mit Dependensy Inversion ausgelagert. diese ist genauer hier beschrieben\ref{Dependancy Inversion}.
+
+%Multibale responsibilities
+
+%Single Responsibility Principle
+
+%Interface Segregation Principle

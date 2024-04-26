@@ -1,0 +1,50 @@
+\documentclass[
+  ngerman
+  ,12pt
+  ,pdftex
+]{report}
+
+\usepackage{mitschrieb}
+
+
+\hyphenation{Differential-gleichung}
+\hyphenation{Über-tragungs-ope-ra-tors}
+\hyphenation{E/A-Dif-fe-ren-ti-al-glei-chung}
+
+\begin{document}
+
+\begin{titlepage}
+  \begin{center}
+      {\Huge \textbf{Programmentwurf: Wer ist der Spion?}}\\[1.5cm]
+      {\Large Lorenz Scherrer}\\[1cm]
+      {\Huge Advanced Software}\\[7cm]
+      {\large Matrikelnummer: \textbf{8809469}}\\[0.5cm]
+      %{\large Matrikelnummer: \textbf{6130555}}\\[0.5cm]
+      {\large Kurs: TINF21B3}\\[0.5cm]
+      {\large Abgabedatum 16.12.2022}
+      \vfill
+  \end{center}
+\end{titlepage}
+\newpage
+\tableofcontents
+\newpage
+
+% INPUTS
+\input{input/programmentwurf.tex}
+\newpage
+\input{input/cleanarchitecture.tex}
+\newpage
+\input{input/ProgrammingPrincipels.tex}
+\newpage
+\input{input/UnitTests.tex}
+\newpage
+\input{input/refactoring.tex}
+
+
+
+%TODO: ZEITSKALEN AUF K=100 und T=10 ändern
+
+
+
+
+\end{document}
